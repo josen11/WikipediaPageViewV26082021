@@ -26,7 +26,7 @@ namespace ConsoleApp
                 - ToString() Formats:  https://docs.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings 
                 - Ansii desing: https://asciiflow.com/#/
                 - Relative Path and executable path: https://ourcodeworld.com/articles/read/935/how-to-retrieve-the-executable-path-of-a-console-application-in-c-sharp
-                                                     https://docs.microsoft.com/en-us/dotnet/api/system.io.path.getdirectoryname?view=net-5.0
+                                                     https://docs.microsoft.com/en-us/dotnet/api/system.io.path.getdirectoryname?view=net-5.0 
                 - Download File: https://docs.microsoft.com/en-us/dotnet/api/system.net.webclient.downloadfile?view=net-5.0
                 - Show progress: https://docs.microsoft.com/en-us/dotnet/api/system.net.webclient.downloadprogresschanged?view=net-5.0
                 - Async Download: https://docs.microsoft.com/en-us/dotnet/api/system.net.webclient.downloadfileasync?view=net-5.0
@@ -48,12 +48,12 @@ namespace ConsoleApp
             Console.WriteLine("│ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │");
             Console.WriteLine("│                                                                                    By: Jose Enrique Aguirre Chavez │");
             Console.WriteLine("│ Description:                                                                                                       │");
-            Console.WriteLine("│ This Console App download last N hours Wikipedia Pageviews from public repository to be analyzed in a top report   │");
-            Console.WriteLine("│ https://dumps.wikimedia.org/other/pageviews/, the process has different phases to guarantee the process.           │");
+            Console.WriteLine("│ This Console App download last 5 hours Wikipedia Pageviews from public repository to be analyzed in a top report   │");
+            Console.WriteLine("│ https://dumps.wikimedia.org/other/pageviews/, the process has different phases to optimize analyzed and storage    │");
             Console.WriteLine("│ We are using LINQ querys to get the task requirements                                                              │");
             Console.WriteLine("└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘\n");
             Console.WriteLine("┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐");
-            Console.WriteLine("│ Phase 1: Generate Pageview links, verify in local repository and download .gz files not found                      │"); 
+            Console.WriteLine("│ Phase 1: Generate Pageview links and download .gz files not found                                                  │");
             Console.WriteLine("│ WARNING: Each download takes 2 min per file.                                                                       │");
             Console.WriteLine("└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘");
             #region Links generation
@@ -65,16 +65,16 @@ namespace ConsoleApp
             string file = System.IO.Path.Combine(currentDirectory, @"..\..\..\Pageviews");
             string filePath = System.IO.Path.GetFullPath(file);
             //Verify if we have .gz file in Pageviewrepository - optimal if we gonna change funcion to N hours last and avoid download twice the same file
-            Console.WriteLine(" 1.1 Generate links and verify in local repository");
+            /*Console.WriteLine(" 1.1 Generate links and verify in local repository");
             links = verifyFile(filePath, links);
             foreach (PageViewFile item in links)
             {
                 string status = item.found ? "[X]" : "[ ]";
                 Console.WriteLine("  |- " + status + " " + item.filename + ".gz");
-            }
+            }*/
             //Calculate not found with LINQ Methods
             int total = links.Count(x => x.found == false);
-            Console.WriteLine("\n 1.2 Download "+ total + " file(s) not found");
+            Console.WriteLine("\n 1.1 Download " + total + " file(s) not found");
             //Download .gz file
             foreach (PageViewFile item in links)
             {
@@ -108,7 +108,8 @@ namespace ConsoleApp
                     textSplit = line.Split(" ");
                     PageView pageview0 = new PageView();
                     //Some cases file could be corrupt a only have 2 or 1 column 
-                    switch (textSplit.Length) {
+                    switch (textSplit.Length)
+                    {
                         case 1:
                             pageview0.domain_code = textSplit[0];
                             pageview0.page_title = " ";
@@ -127,50 +128,53 @@ namespace ConsoleApp
                     }
                     pageviewDB.Add(pageview0);
                 }
-                Console.Write(" Loaded "+lines.Length+" items! \n");
+                Console.Write(" Loaded " + lines.Length + " items! \n");
             }
+            //Deletefiles
+            deleteFiles(filePath);
             #endregion
             #region Get task requirements using LINQ queries
             Console.WriteLine("┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐");
             Console.WriteLine("│ Phase 3: Task requeriments - Get Top N Group by Domain_code and Page_tigle Ordered desc by SUM (count_views)       │");
             Console.WriteLine("└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘");
-            Console.WriteLine(" Input the top number you want to retrieve: ");
-            Console.Write(" ");
+            Console.WriteLine("  Input the top number you want to retrieve: ");
+            Console.Write("  ");
             var topString = Console.ReadLine();
             while (string.IsNullOrEmpty(topString))
             {
-                Console.WriteLine(" Top can't be empty. Please, input once more");
-                Console.Write(" ");
+                Console.WriteLine("  Top can't be empty. Please, input once more");
+                Console.Write("  ");
                 topString = Console.ReadLine();
             }
             int top;
-            while (!int.TryParse(topString,out top))
+            while (!int.TryParse(topString, out top))
             {
-                Console.WriteLine(" Please, enter a a number");
-                Console.Write(" ");
+                Console.WriteLine("  Please, enter a a number");
+                Console.Write("  ");
                 topString = Console.ReadLine();
             }
-            Console.WriteLine(" Loading Report Top " + top + " ...");
-                      
+            Console.WriteLine("  Loading Report Top " + top + " (Analyzing " + pageviewDB.Count + " items) ...");
+
             var query = (from pageview in pageviewDB
-                              group pageview by new 
-                              { 
-                                  pageview.domain_code,
-                                  pageview.page_title
-                              } into pageviewGroup
-                              orderby pageviewGroup.Sum(x => x.count_view) descending
-                              select new { 
-                                  Domain = pageviewGroup.Key.domain_code,
-                                  Page = pageviewGroup.Key.page_title,
-                                  Sum = pageviewGroup.Sum(x=>x.count_view)}
-                              ).Take(top);
+                         group pageview by new
+                         {
+                             pageview.domain_code,
+                             pageview.page_title
+                         } into pageviewGroup
+                         orderby pageviewGroup.Sum(x => x.count_view) descending
+                         select new
+                         {
+                             Domain = pageviewGroup.Key.domain_code,
+                             Page = pageviewGroup.Key.page_title,
+                             Sum = pageviewGroup.Sum(x => x.count_view)
+                         }
+                        );
 
-
-
+            var result = query.Take(top).ToList();
             PrintLine();
             PrintRow("DOMAIN_CODE", "PAGE_TITLE", "CNT");
             PrintLine();
-            foreach (var item in query)
+            foreach (var item in result)
             {
                 PrintRow(item.Domain, item.Page, item.Sum.ToString());
             };
@@ -178,16 +182,17 @@ namespace ConsoleApp
             Console.WriteLine("\n┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐");
             Console.WriteLine("│ Good Bye: Please press any key to close the program. ♠♥♦♣                                                          │");
             Console.WriteLine("└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘");
-            Console.ReadLine();
+            Console.ReadKey();
             #endregion
             #region Note Version
             /*
+             - Do the task requeriments
              - Optimize storage, dropping page view and .gz once console app is closed
-             - Optimize experience applying menu with optization to chosse N Top report 
              */
             #endregion
             #region NextVersion
             /*
+             - Optimize experience applying menu with optization to chosse N Top report into while 
              - Analyze new function last N hours or use a range of datetime 
              - Improve time of download page view (use threads)
              - Improve time retrieve final report (Optimize query o analyze other ways)
@@ -227,44 +232,7 @@ namespace ConsoleApp
             }
         }
         #endregion
-        #region Menu
-        static void showMenu()
-        {
-            Console.WriteLine("\n┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐");
-            Console.WriteLine("│ Please select one of these options                                                                                 │");
-            Console.WriteLine("│    Option 1:  │");
-            Console.WriteLine("└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘");
-            //Variables
-            List<PageViewFile> links0 = new List<PageViewFile>();
-            string urlbase = "https://dumps.wikimedia.org/other/pageviews";
-            DateTime date0 = new DateTime(startdatetime.Year, startdatetime.Month, startdatetime.Day, startdatetime.Hour, 0, 0);
-            //Generate links
-            int j = 0;
-            for (int i = 0; i < hours; i++)
-            {
-                PageViewFile item = new PageViewFile();
-                if (i == 0)
-                {
-                    item = linkGenerator(urlbase, date0);
-                    //If there no exist .gz file yet, take one hour before .gz file as first link
-                    if (validateLink(item.link) == false)
-                    {
-                        j = j + 1;
-                        DateTime date1 = date0.AddHours(-j);
-                        item = linkGenerator(urlbase, date1);
-                    }
-                }
-                else
-                {
-                    j = j + 1;
-                    DateTime date2 = date0.AddHours(-j);
-                    item = linkGenerator(urlbase, date2);
-                }
-                links0.Add(item);
-            }
-            return links0;
-        }
-        #endregion
+
         #region Links generation - Methods
         static List<PageViewFile> getLinks(DateTime startdatetime, int hours)
         {
@@ -362,7 +330,16 @@ namespace ConsoleApp
             }
             return linksupdated;
         }
-        static void downloadFiles(string link, string path) {
+        static void deleteFiles(string repositorypath)
+        {
+            string[] files = Directory.GetFiles(repositorypath);
+            foreach (string file in files)
+            {
+                File.Delete(file);
+            }
+        }
+        static void downloadFiles(string link, string path)
+        {
             WebClient myWebClient = new WebClient();
             Uri uri = new Uri(link);
             try
